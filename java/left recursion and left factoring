@@ -1,0 +1,137 @@
+import java.util.*;
+
+public class GrammarTransformer {
+
+    // Original grammar rules
+    private Map<String, List<String>> originalGrammar;
+
+    public GrammarTransformer(Map<String, List<String>> originalGrammar) {
+        this.originalGrammar = originalGrammar;
+    }
+
+    // Method to remove left recursion
+    public Map<String, List<String>> removeLeftRecursion() {
+        Map<String, List<String>> transformedGrammar = new HashMap<>();
+
+        for (String nonTerminal : originalGrammar.keySet()) {
+            List<String> productions = originalGrammar.get(nonTerminal);
+
+            // Separate the productions with and without left recursion
+            List<String> leftRecursiveProductions = new ArrayList<>();
+            List<String> nonLeftRecursiveProductions = new ArrayList<>();
+
+            for (String production : productions) {
+                if (production.startsWith(nonTerminal)) {
+                    leftRecursiveProductions.add(production.substring(nonTerminal.length()).trim());
+                } else {
+                    nonLeftRecursiveProductions.add(production);
+                }
+            }
+
+            if (!leftRecursiveProductions.isEmpty()) {
+                String newNonTerminal = nonTerminal + "'";
+                List<String> newProductions = new ArrayList<>();
+                for (String nonTerminalProduction : nonLeftRecursiveProductions) {
+                    newProductions.add(nonTerminalProduction + " " + newNonTerminal);
+                }
+                newProductions.add("#"); // Adding epsilon production
+                transformedGrammar.put(nonTerminal, newProductions);
+
+                List<String> newNonTerminalProductions = new ArrayList<>();
+                for (String leftRecursiveProduction : leftRecursiveProductions) {
+                    newNonTerminalProductions.add(leftRecursiveProduction + " " + newNonTerminal);
+                }
+                newNonTerminalProductions.add("#"); // Adding epsilon production
+                transformedGrammar.put(newNonTerminal, newNonTerminalProductions);
+            } else {
+                transformedGrammar.put(nonTerminal, productions);
+            }
+        }
+
+        return transformedGrammar;
+    }
+
+    // Method to remove left factoring
+    public Map<String, List<String>> removeLeftFactoring() {
+        Map<String, List<String>> transformedGrammar = new HashMap<>();
+
+        for (String nonTerminal : originalGrammar.keySet()) {
+            List<String> productions = originalGrammar.get(nonTerminal);
+
+            Map<String, List<String>> commonPrefixes = new HashMap<>();
+            for (String production : productions) {
+                String prefix = getCommonPrefix(production);
+                if (!prefix.isEmpty()) {
+                    if (!commonPrefixes.containsKey(prefix)) {
+                        commonPrefixes.put(prefix, new ArrayList<>());
+                    }
+                    commonPrefixes.get(prefix).add(production.substring(prefix.length()).trim());
+                } else {
+                    if (!transformedGrammar.containsKey(nonTerminal)) {
+                        transformedGrammar.put(nonTerminal, new ArrayList<>());
+                    }
+                    transformedGrammar.get(nonTerminal).add(production);
+                }
+            }
+
+            for (String prefix : commonPrefixes.keySet()) {
+                String newNonTerminal = nonTerminal + "'";
+                List<String> newProductions = new ArrayList<>();
+                newProductions.addAll(commonPrefixes.get(prefix));
+                transformedGrammar.put(nonTerminal, Collections.singletonList(prefix + " " + newNonTerminal));
+                transformedGrammar.put(newNonTerminal, newProductions);
+            }
+        }
+
+        return transformedGrammar;
+    }
+
+    // Method to get the common prefix of a production
+    private String getCommonPrefix(String production) {
+        String[] symbols = production.split("\\s+");
+        StringBuilder prefix = new StringBuilder();
+        for (int i = 0; i < symbols.length; i++) {
+            if (i == 0) {
+                prefix.append(symbols[i]);
+            } else {
+                String nextSymbol = symbols[i];
+                if (!prefix.toString().startsWith(nextSymbol)) {
+                    break;
+                }
+                prefix.append(" ").append(nextSymbol);
+            }
+        }
+        return prefix.toString();
+    }
+
+    public static void main(String[] args) {
+        // Define the original grammar
+        Map<String, List<String>> originalGrammar = new HashMap<>();
+        originalGrammar.put("E", Arrays.asList("E + T", "T"));
+        originalGrammar.put("T", Arrays.asList("T * F", "F"));
+        originalGrammar.put("F", Arrays.asList("( E )", "id"));
+
+        GrammarTransformer transformer = new GrammarTransformer(originalGrammar);
+
+        System.out.println("Original Grammar:");
+        printGrammar(originalGrammar);
+
+        Map<String, List<String>> withoutLeftRecursion = transformer.removeLeftRecursion();
+        System.out.println("\nGrammar after removing left recursion:");
+        printGrammar(withoutLeftRecursion);
+
+        Map<String, List<String>> withoutLeftFactoring = transformer.removeLeftFactoring();
+        System.out.println("\nGrammar after removing left factoring:");
+        printGrammar(withoutLeftFactoring);
+    }
+
+    // Helper method to print the grammar
+    private static void printGrammar(Map<String, List<String>> grammar) {
+        for (String nonTerminal : grammar.keySet()) {
+            List<String> productions = grammar.get(nonTerminal);
+            for (String production : productions) {
+                System.out.println(nonTerminal + " -> " + production);
+            }
+        }
+    }
+}
