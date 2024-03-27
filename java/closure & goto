@@ -1,0 +1,72 @@
+import java.util.*;
+
+public class LRParser {
+
+    private Map<String, List<String>> grammar;
+
+    public LRParser(Map<String, List<String>> grammar) {
+        this.grammar = grammar;
+    }
+
+    // Closure operation
+    public Set<String> closure(Set<String> items) {
+        Set<String> closure = new HashSet<>(items);
+        boolean changed;
+        do {
+            changed = false;
+            Set<String> itemsToAdd = new HashSet<>();
+            for (String item : closure) {
+                int dotIndex = item.indexOf('.');
+                if (dotIndex >= 0 && dotIndex < item.length() - 1) {
+                    char nextSymbol = item.charAt(dotIndex + 1);
+                    if (Character.isUpperCase(nextSymbol)) {
+                        String nonTerminal = String.valueOf(nextSymbol);
+                        for (String production : grammar.get(nonTerminal)) {
+                            itemsToAdd.add(nonTerminal + "->." + production);
+                        }
+                    }
+                }
+            }
+            changed = closure.addAll(itemsToAdd);
+        } while (changed);
+
+        return closure;
+    }
+
+    // Goto operation
+    public Set<String> gotoOperation(Set<String> items, char symbol) {
+        Set<String> gotoSet = new HashSet<>();
+        for (String item : items) {
+            int dotIndex = item.indexOf('.');
+            if (dotIndex >= 0 && dotIndex < item.length() - 1 && item.charAt(dotIndex + 1) == symbol) {
+                String newItem = item.substring(0, dotIndex) + symbol + "." + item.substring(dotIndex + 2);
+                gotoSet.add(newItem);
+            }
+        }
+        return closure(gotoSet);
+    }
+
+    public static void main(String[] args) {
+        // Define the grammar
+        Map<String, List<String>> grammar = new HashMap<>();
+        grammar.put("S", Arrays.asList("E"));
+        grammar.put("E", Arrays.asList("E+T", "T"));
+        grammar.put("T", Arrays.asList("T*F", "F"));
+        grammar.put("F", Arrays.asList("(E)", "id"));
+
+        LRParser parser = new LRParser(grammar);
+
+        // Test closure operation
+        Set<String> items = new HashSet<>();
+        items.add("S'->.S");
+        System.out.println("Closure of items: " + parser.closure(items));
+
+        // Test goto operation
+        Set<String> itemsWithGoto = new HashSet<>();
+        itemsWithGoto.add("E->E.+T");
+        itemsWithGoto.add("E->.E+T");
+        itemsWithGoto.add("T->.T*F");
+        itemsWithGoto.add("F->.(E)");
+        System.out.println("Goto operation for 'T': " + parser.gotoOperation(itemsWithGoto, 'T'));
+    }
+}
