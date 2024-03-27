@@ -1,0 +1,47 @@
+import java.util.*;
+
+public class LeftRecursionElimination {
+
+    public static void main(String[] args) {
+        // Example grammar with left recursion
+        String[] productions = {
+            "E -> E + T | T",
+            "T -> T * F | F",
+            "F -> ( E ) | id"
+        };
+
+        eliminateLeftRecursion(productions);
+    }
+
+    public static void eliminateLeftRecursion(String[] productions) {
+        List<String> newProductions = new ArrayList<>();
+
+        for (String production : productions) {
+            String[] parts = production.split("->");
+            String nonTerminal = parts[0].trim();
+            String[] expressions = parts[1].trim().split("\\|");
+
+            List<String> alpha = new ArrayList<>();
+            List<String> beta = new ArrayList<>();
+
+            for (String expr : expressions) {
+                if (expr.trim().startsWith(nonTerminal)) {
+                    beta.add(expr.replaceFirst(nonTerminal, "").trim() + " " + nonTerminal + "'");
+                } else {
+                    alpha.add(expr.trim() + " " + nonTerminal + "'");
+                }
+            }
+
+            if (!beta.isEmpty()) {
+                newProductions.add(nonTerminal + " -> " + String.join(" | ", alpha));
+                newProductions.add(nonTerminal + "' -> " + String.join(" | ", beta) + " | ?");
+            } else {
+                newProductions.add(production);
+            }
+        }
+
+        for (String prod : newProductions) {
+            System.out.println(prod);
+        }
+    }
+}
