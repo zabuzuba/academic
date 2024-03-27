@@ -1,0 +1,71 @@
+import java.util.*;
+
+public class GrammarAnalyzer {
+
+    // Define the grammar rules
+    private Map<String, List<String>> grammar;
+
+    public GrammarAnalyzer(Map<String, List<String>> grammar) {
+        this.grammar = grammar;
+    }
+
+    // Method to compute FIRST set
+    public Set<String> computeFirst(String symbol) {
+        Set<String> firstSet = new HashSet<>();
+        List<String> productions = grammar.get(symbol);
+
+        for (String production : productions) {
+            char firstSymbol = production.charAt(0);
+            if (!Character.isUpperCase(firstSymbol)) {
+                firstSet.add(String.valueOf(firstSymbol));
+            } else {
+                firstSet.addAll(computeFirst(String.valueOf(firstSymbol)));
+            }
+        }
+
+        return firstSet;
+    }
+
+    // Method to compute FOLLOW set
+    public Set<String> computeFollow(String symbol) {
+        Set<String> followSet = new HashSet<>();
+
+        if (symbol.equals("E")) {
+            followSet.add("$"); // $ represents end of input
+        }
+
+        for (String nonTerminal : grammar.keySet()) {
+            List<String> productions = grammar.get(nonTerminal);
+            for (String production : productions) {
+                int index = production.indexOf(symbol);
+                if (index != -1 && index < production.length() - 1) {
+                    char nextChar = production.charAt(index + 1);
+                    if (!Character.isUpperCase(nextChar)) {
+                        followSet.add(String.valueOf(nextChar));
+                    } else {
+                        followSet.addAll(computeFirst(String.valueOf(nextChar)));
+                    }
+                } else if (index != -1 && index == production.length() - 1 && !nonTerminal.equals(symbol)) {
+                    followSet.addAll(computeFollow(nonTerminal));
+                }
+            }
+        }
+
+        return followSet;
+    }
+
+    public static void main(String[] args) {
+        // Define the grammar
+        Map<String, List<String>> grammar = new HashMap<>();
+        grammar.put("E", Arrays.asList("TR"));
+        grammar.put("R", Arrays.asList("+TR", "#"));
+        grammar.put("T", Arrays.asList("FY"));
+        grammar.put("Y", Arrays.asList("*FY", "#"));
+        grammar.put("F", Arrays.asList("(E)", "i"));
+
+        GrammarAnalyzer analyzer = new GrammarAnalyzer(grammar);
+
+        System.out.println("FIRST(E): " + analyzer.computeFirst("E"));
+        System.out.println("FOLLOW(E): " + analyzer.computeFollow("E"));
+    }
+}
