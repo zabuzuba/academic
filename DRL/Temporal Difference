@@ -1,0 +1,33 @@
+import numpy as np
+
+class NStepTD:
+    def __init__(self, states, n=3, alpha=0.1, gamma=0.9):
+        self.states = states
+        self.n = n  # n-step
+        self.alpha = alpha  # Learning rate
+        self.gamma = gamma  # Discount factor
+        self.values = {state: 0.0 for state in states}  # Initialize values
+
+    def update_values(self, episode):
+        T = len(episode)  # Episode length
+        for t in range(T):
+            G = 0
+            for k in range(self.n):
+                if t + k < T:
+                    G += (self.gamma ** k) * episode[t + k][1]  # Sum of discounted rewards
+            if t + self.n < T:
+                G += (self.gamma ** self.n) * self.values[episode[t + self.n][0]]  # Bootstrapped value
+
+            # Update value of state at time t
+            state = episode[t][0]
+            self.values[state] += self.alpha * (G - self.values[state])
+
+# Example usage
+states = ['S1', 'S2', 'S3']  # States in the environment
+agent = NStepTD(states, n=3, alpha=0.1, gamma=0.9)
+
+# Simulate an episode with (state, reward) pairs
+episode = [('S1', 1), ('S2', -1), ('S3', 2), ('S2', 0)]
+agent.update_values(episode)
+
+print("State values after n-step TD:", agent.values)
