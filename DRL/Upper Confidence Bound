@@ -1,0 +1,40 @@
+import numpy as np
+
+class UCBAgent:
+    def __init__(self, actions):
+        self.actions = actions
+        self.q_values = {action: 0.0 for action in actions}  # Initialize Q-values to 0
+        self.action_counts = {action: 0 for action in actions}  # Count of actions taken
+        self.total_count = 0  # Total actions taken
+
+    def choose_action(self):
+        # If any action has not been tried, choose it
+        if self.total_count < len(self.actions):
+            return self.actions[self.total_count]
+        
+        # Calculate UCB for each action
+        ucb_values = {}
+        for action in self.actions:
+            ucb_values[action] = self.q_values[action] + np.sqrt((2 * np.log(self.total_count)) / self.action_counts[action])
+        
+        # Choose the action with the highest UCB value
+        return max(ucb_values, key=ucb_values.get)
+
+    def update_q_value(self, action, reward):
+        # Update action count
+        self.action_counts[action] += 1
+        self.total_count += 1
+        
+        # Update Q-value using the average reward formula
+        self.q_values[action] += (reward - self.q_values[action]) / self.action_counts[action]
+
+# Example usage
+actions = ['a1', 'a2', 'a3']  # Possible actions
+agent = UCBAgent(actions)
+
+for episode in range(20):  # Simulate 20 episodes
+    action = agent.choose_action()  # Select action using UCB
+    reward = np.random.uniform(-1, 1)  # Simulate a random reward for the action
+    agent.update_q_value(action, reward)  # Update Q-value
+
+    print(f"Episode {episode + 1}: Action={action}, Reward={reward:.2f}, Q-values={agent.q_values}, Action Counts={agent.action_counts}")
