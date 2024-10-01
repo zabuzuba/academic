@@ -1,0 +1,66 @@
+import random
+
+class MDP:
+    def __init__(self, states, actions, transitions, rewards, discount_factor=0.9):
+        self.states = states
+        self.actions = actions
+        self.transitions = transitions  # Dict of state-action pair leading to next state
+        self.rewards = rewards          # Rewards for state-action pairs
+        self.discount_factor = discount_factor
+
+    def get_next_state(self, state, action):
+        return self.transitions.get((state, action), state)
+
+    def get_reward(self, state, action):
+        return self.rewards.get((state, action), 0)
+
+    def value_iteration(self, iterations=100):
+        # Initialize values for all states
+        values = {state: 0 for state in self.states}
+        
+        for _ in range(iterations):
+            new_values = values.copy()
+            for state in self.states:
+                action_values = []
+                for action in self.actions:
+                    next_state = self.get_next_state(state, action)
+                    reward = self.get_reward(state, action)
+                    action_value = reward + self.discount_factor * values[next_state]
+                    action_values.append(action_value)
+                new_values[state] = max(action_values)
+            values = new_values
+        return values
+
+# Example usage
+states = ['S1', 'S2', 'S3', 'S4']  # States in the MDP
+actions = ['a1', 'a2']  # Possible actions
+
+# Define state transitions and rewards
+transitions = {
+    ('S1', 'a1'): 'S2',
+    ('S1', 'a2'): 'S3',
+    ('S2', 'a1'): 'S4',
+    ('S2', 'a2'): 'S1',
+    ('S3', 'a1'): 'S1',
+    ('S3', 'a2'): 'S4',
+    ('S4', 'a1'): 'S4',
+    ('S4', 'a2'): 'S4',
+}
+
+rewards = {
+    ('S1', 'a1'): 5,
+    ('S1', 'a2'): 10,
+    ('S2', 'a1'): -1,
+    ('S2', 'a2'): 2,
+    ('S3', 'a1'): 0,
+    ('S3', 'a2'): 3,
+    ('S4', 'a1'): 0,
+    ('S4', 'a2'): 0,
+}
+
+# Initialize MDP
+mdp = MDP(states, actions, transitions, rewards)
+
+# Perform value iteration
+values = mdp.value_iteration()
+print("State values after value iteration:", values)
