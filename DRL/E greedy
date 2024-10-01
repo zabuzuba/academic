@@ -1,0 +1,37 @@
+import random
+
+class EpsilonGreedy:
+    def __init__(self, actions, initial_epsilon=1.0, min_epsilon=0.1, decay_rate=0.01):
+        self.actions = actions
+        self.epsilon = initial_epsilon
+        self.min_epsilon = min_epsilon
+        self.decay_rate = decay_rate
+        self.q_values = {action: 0.0 for action in actions}  # Initialize Q-values to 0
+
+    def choose_action(self):
+        if random.random() < self.epsilon:
+            # Explore: choose a random action
+            return random.choice(self.actions)
+        else:
+            # Exploit: choose the action with the highest Q-value
+            return max(self.q_values, key=self.q_values.get)
+
+    def update_q_value(self, action, reward, learning_rate=0.1):
+        # Update Q-value using a simple update rule
+        self.q_values[action] += learning_rate * (reward - self.q_values[action])
+
+    def decay_epsilon(self):
+        # Linearly decay epsilon until it reaches min_epsilon
+        self.epsilon = max(self.min_epsilon, self.epsilon - self.decay_rate)
+
+# Example usage
+actions = ['a1', 'a2', 'a3']  # Possible actions
+agent = EpsilonGreedy(actions, initial_epsilon=1.0, min_epsilon=0.1, decay_rate=0.05)
+
+for episode in range(20):  # Simulate 20 episodes
+    action = agent.choose_action()  # Select action using epsilon-greedy
+    reward = random.uniform(-1, 1)  # Simulate a random reward for the action
+    agent.update_q_value(action, reward)  # Update Q-value
+    agent.decay_epsilon()  # Decay epsilon
+    
+    print(f"Episode {episode + 1}: Action={action}, Reward={reward:.2f}, Q-values={agent.q_values}, Epsilon={agent.epsilon:.2f}")
