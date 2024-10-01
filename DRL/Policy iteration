@@ -1,0 +1,92 @@
+import random
+
+class MDP:
+    def __init__(self, states, actions, transitions, rewards, discount_factor=0.9):
+        self.states = states
+        self.actions = actions
+        self.transitions = transitions  # Dict of state-action pair leading to next state
+        self.rewards = rewards          # Rewards for state-action pairs
+        self.discount_factor = discount_factor
+        self.policy = {state: random.choice(actions) for state in states}  # Random initial policy
+
+    def get_next_state(self, state, action):
+        return self.transitions.get((state, action), state)
+
+    def get_reward(self, state, action):
+        return self.rewards.get((state, action), 0)
+
+    def policy_evaluation(self, policy, iterations=100):
+        values = {state: 0 for state in self.states}
+        
+        for _ in range(iterations):
+            new_values = values.copy()
+            for state in self.states:
+                action = policy[state]
+                next_state = self.get_next_state(state, action)
+                reward = self.get_reward(state, action)
+                new_values[state] = reward + self.discount_factor * values[next_state]
+            values = new_values
+        return values
+
+    def policy_improvement(self, values):
+        policy_stable = True
+        new_policy = self.policy.copy()
+
+        for state in self.states:
+            action_values = []
+            for action in self.actions:
+                next_state = self.get_next_state(state, action)
+                reward = self.get_reward(state, action)
+                action_value = reward + self.discount_factor * values[next_state]
+                action_values.append((action_value, action))
+
+            best_action = max(action_values)[1]
+            if best_action != self.policy[state]:
+                policy_stable = False
+            new_policy[state] = best_action
+        
+        self.policy = new_policy
+        return policy_stable
+
+    def policy_iteration(self):
+        while True:
+            values = self.policy_evaluation(self.policy)
+            policy_stable = self.policy_improvement(values)
+            if policy_stable:
+                break
+        return self.policy, values
+
+# Example usage
+states = ['S1', 'S2', 'S3', 'S4']  # States in the MDP
+actions = ['a1', 'a2']  # Possible actions
+
+# Define state transitions and rewards
+transitions = {
+    ('S1', 'a1'): 'S2',
+    ('S1', 'a2'): 'S3',
+    ('S2', 'a1'): 'S4',
+    ('S2', 'a2'): 'S1',
+    ('S3', 'a1'): 'S1',
+    ('S3', 'a2'): 'S4',
+    ('S4', 'a1'): 'S4',
+    ('S4', 'a2'): 'S4',
+}
+
+rewards = {
+    ('S1', 'a1'): 5,
+    ('S1', 'a2'): 10,
+    ('S2', 'a1'): -1,
+    ('S2', 'a2'): 2,
+    ('S3', 'a1'): 0,
+    ('S3', 'a2'): 3,
+    ('S4', 'a1'): 0,
+    ('S4', 'a2'): 0,
+}
+
+# Initialize MDP
+mdp = MDP(states, actions, transitions, rewards)
+
+# Perform policy iteration
+optimal_policy, optimal_values = mdp.policy_iteration()
+print("Optimal Policy:", optimal_policy)
+print("Optimal State Values:", optimal_values)
