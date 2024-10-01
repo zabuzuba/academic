@@ -1,0 +1,31 @@
+import numpy as np
+
+class SoftmaxAgent:
+    def __init__(self, actions, temperature=1.0):
+        self.actions = actions
+        self.q_values = {action: 0.0 for action in actions}  # Initialize Q-values to 0
+        self.temperature = temperature  # Controls exploration (higher temperature = more exploration)
+
+    def choose_action(self):
+        # Calculate action probabilities using Softmax function
+        q_values = np.array([self.q_values[action] for action in self.actions])
+        exp_q = np.exp(q_values / self.temperature)
+        probabilities = exp_q / np.sum(exp_q)
+
+        # Choose action based on the probabilities
+        return np.random.choice(self.actions, p=probabilities)
+
+    def update_q_value(self, action, reward, learning_rate=0.1):
+        # Update Q-value using a simple update rule
+        self.q_values[action] += learning_rate * (reward - self.q_values[action])
+
+# Example usage
+actions = ['a1', 'a2', 'a3']  # Possible actions
+agent = SoftmaxAgent(actions, temperature=1.0)
+
+for episode in range(20):  # Simulate 20 episodes
+    action = agent.choose_action()  # Select action using Softmax
+    reward = np.random.uniform(-1, 1)  # Simulate a random reward for the action
+    agent.update_q_value(action, reward)  # Update Q-value
+
+    print(f"Episode {episode + 1}: Action={action}, Reward={reward:.2f}, Q-values={agent.q_values}")
