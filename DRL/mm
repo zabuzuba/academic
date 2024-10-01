@@ -1,1 +1,246 @@
+1. Mathematical Foundations of Reinforcement Learning (MDP Implementation Example: Gridworld)
 
+import numpy as np
+
+class Gridworld:
+    def init(self, size=4):
+        self.size = size
+        self.state = (0, 0)
+        self.end_state = (size-1, size-1)
+
+    def reset(self):
+        self.state = (0, 0)
+        return self.state
+
+    def step(self, action):
+        x, y = self.state
+        if action == 0:  # Move up
+            x = max(0, x-1)
+        elif action == 1:  # Move right
+            y = min(self.size-1, y+1)
+        elif action == 2:  # Move down
+            x = min(self.size-1, x+1)
+        elif action == 3:  # Move left
+            y = max(0, y-1)
+
+        self.state = (x, y)
+        if self.state == self.end_state:
+            return self.state, 1, True  # Reward of 1 on reaching the goal
+        else:
+            return self.state, -1, False  # Penalty of -1 otherwise
+
+env = Gridworld()
+state = env.reset()
+print("Initial State:", state)
+state, reward, done = env.step(1)  # Move right
+print("Next State:", state, "Reward:", reward, "Done:", done)
+
+2.1 Policy Iteration
+
+
+import numpy as np
+
+# Environment setup (states, actions, rewards)
+states = 4
+actions = 2
+rewards = np.array([[0, -1], [-1, 0], [0, 1], [1, 0]])  # Example rewards
+policy = np.zeros(states, dtype=int)  # Initial random policy (choose action 0)
+
+# Policy evaluation step
+def policy_evaluation(policy, gamma=0.9, theta=0.0001):
+    V = np.zeros(states)
+    while True:
+        delta = 0
+        for s in range(states):
+            v = np.sum(rewards[s][policy[s]] + gamma * V[s])
+            delta = max(delta, abs(v - V[s]))
+            V[s] = v
+        if delta < theta:
+            break
+    return V
+
+# Policy improvement step
+def policy_improvement(V, gamma=0.9):
+    stable_policy = True
+    for s in range(states):
+        old_action = policy[s]
+        policy[s] = np.argmax(rewards[s] + gamma * V[s])
+        if old_action != policy[s]:
+            stable_policy = False
+    return stable_policy
+
+# Main loop: Policy Iteration
+while True:
+    V = policy_evaluation(policy)
+    if policy_improvement(V):
+        break
+
+print("Optimal Policy:", policy)
+
+2.2 Value Iteration
+
+import numpy as np
+
+# Environment setup (states, actions, rewards)
+states = 4
+actions = 2
+rewards = np.array([[0, -1], [-1, 0], [0, 1], [1, 0]])  # Example rewards
+V = np.zeros(states)  # Initial value function
+
+# Value iteration algorithm
+def value_iteration(gamma=0.9, theta=0.0001):
+    while True:
+        delta = 0
+        for s in range(states):
+            v = V[s]
+            V[s] = max(rewards[s] + gamma * V[s])
+            delta = max(delta, abs(v - V[s]))
+        if delta < theta:
+            break
+
+# Run value iteration
+value_iteration()
+
+# Extract optimal policy
+optimal_policy = np.argmax(rewards + 0.9 * V.reshape(-1, 1), axis=1)
+print("Optimal Policy:", optimal_policy)
+
+3.1 Epsilon-Greedy with Decaying Epsilon (Exploration vs Exploitation)
+
+import numpy as np
+import random
+
+class EpsilonGreedyAgent:
+    def init(self, n_actions, epsilon=1.0, decay_rate=0.99, min_epsilon=0.1):
+        self.n_actions = n_actions
+        self.epsilon = epsilon
+        self.decay_rate = decay_rate
+        self.min_epsilon = min_epsilon
+        self.q_table = np.zeros(n_actions)
+
+    def select_action(self):
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(range(self.n_actions))
+        return np.argmax(self.q_table)
+
+    def update_epsilon(self):
+        self.epsilon = max(self.min_epsilon, self.epsilon * self.decay_rate)
+
+agent = EpsilonGreedyAgent(n_actions=4)
+for _ in range(10):
+    action = agent.select_action()
+    print(f"Selected Action: {action} with epsilon: {agent.epsilon}")
+    agent.update_epsilon()
+
+3.2 SoftMax Exploration Strategy
+
+import numpy as np
+
+class SoftMaxAgent:
+    def init(self, n_actions, temperature=1.0):
+        self.n_actions = n_actions
+        self.temperature = temperature
+        self.q_table = np.zeros(n_actions)  # Action-value table
+
+    def select_action(self):
+        exp_q_values = np.exp(self.q_table / self.temperature)
+        action_probs = exp_q_values / np.sum(exp_q_values)
+        return np.random.choice(self.n_actions, p=action_probs)
+
+# Example usage
+agent = SoftMaxAgent(n_actions=4, temperature=1.0)
+for episode in range(10):
+    action = agent.select_action()
+    print(f"Episode {episode+1}: Action = {action}")
+
+3.3 Upper Confidence Bound (UCB)
+
+import numpy as np
+
+class UCB_Agent:
+    def init(self, n_actions, total_steps=1):
+        self.n_actions = n_actions
+        self.q_table = np.zeros(n_actions)  # Action-value table
+        self.action_count = np.zeros(n_actions)  # Count of each action taken
+        self.total_steps = total_steps
+
+    def select_action(self):
+        ucb_values = self.q_table + np.sqrt(2 * np.log(self.total_steps + 1) / (self.action_count + 1))
+        return np.argmax(ucb_values)
+
+    def update(self, action, reward):
+        self.action_count[action] += 1
+        self.q_table[action] += (reward - self.q_table[action]) / self.action_count[action]
+        self.total_steps += 1
+
+# Example usage
+agent = UCB_Agent(n_actions=4)
+for episode in range(10):
+    action = agent.select_action()
+    print(f"Episode {episode+1}: Action = {action}")
+    agent.update(action, reward=np.random.randn())  # Update with random reward
+
+4.1 Monte-Carlo Prediction ( on policy Every-Visit)
+
+
+import numpy as np
+from collections import defaultdict
+
+def monte_carlo_prediction(env, policy, num_episodes, discount_factor=1.0):
+    returns_sum = defaultdict(float)
+    returns_count = defaultdict(float)
+    V = defaultdict(float)
+
+    for i_episode in range(1, num_episodes + 1):
+        episode = []
+        state = env.reset()
+        for t in range(100):  # Assume a maximum of 100 time steps
+            action = policy[state]
+            next_state, reward, done, _ = env.step(action)
+            episode.append((state, action, reward))
+            if done:
+                break
+            state = next_state
+
+        states_in_episode = set([x[0] for x in episode])
+        for state in states_in_episode:
+            first_occurrence_idx = next(i for i, x in enumerate(episode) if x[0] == state)
+            G = sum([x[2] * (discount_factor ** i) for i, x in enumerate(episode[first_occurrence_idx:])])
+            returns_sum[state] += G
+            returns_count[state] += 1.0
+            V[state] = returns_sum[state] / returns_count[state]
+
+    return V
+
+
+4.2 n-step Temporal-Difference (TD) Prediction
+
+
+import numpy as np
+
+class NstepTDAgent:
+    def init(self, n_states, n_steps=3, alpha=0.1, gamma=0.9):
+        self.n_states = n_states
+        self.n_steps = n_steps
+        self.alpha = alpha  # Learning rate
+        self.gamma = gamma  # Discount factor
+        self.value_table = np.zeros(n_states)
+        self.history = []  # Stores the n-step history
+
+    def update_value(self, state, reward, next_state):
+        self.history.append((state, reward))
+        if len(self.history) == self.n_steps:
+            G = sum(self.gamma ** i * reward for i, (_, reward) in enumerate(self.history))
+            G += self.gamma ** self.n_steps * self.value_table[next_state]
+            state_to_update, _ = self.history.pop(0)  # First state in the history
+            self.value_table[state_to_update] += self.alpha * (G - self.value_table[state_to_update])
+
+# Example usage
+agent = NstepTDAgent(n_states=5, n_steps=3)
+agent.update_value(0, -1, 1)
+agent.update_value(1, 2, 2)
+agent.update_value(2, 0, 3)  # Now we have 3 steps, so the update happens
+print("Value Table:", agent.value_table)
+
+
+https://chatgpt.com/share/66fb69de-4080-8007-9c26-9057c74da55a
