@@ -1,0 +1,53 @@
+import numpy as np
+
+class MonteCarloAgent:
+    def __init__(self, actions):
+        self.actions = actions
+        self.q_values = {action: 0.0 for action in actions}  # Initialize Q-values to 0
+        self.state_returns = {}  # Store returns for each state-action pair
+        self.state_action_counts = {}  # Count of returns for each state-action pair
+        self.policy = {action: 1 / len(actions) for action in actions}  # Uniform policy
+
+    def choose_action(self):
+        # Choose action based on the current policy (uniform for simplicity)
+        return np.random.choice(self.actions, p=list(self.policy.values()))
+
+    def generate_episode(self):
+        episode = []
+        state = 0  # Starting state (for simplicity, single state)
+        
+        for _ in range(10):  # Simulate 10 steps
+            action = self.choose_action()
+            reward = np.random.uniform(-1, 1)  # Simulate a random reward for the action
+            episode.append((state, action, reward))
+            # For simplicity, assume we stay in the same state
+            state = 0
+        
+        return episode
+
+    def update_q_values(self, episode):
+        G = 0  # Return
+        episode.reverse()  # Reverse episode to calculate returns
+        
+        for state, action, reward in episode:
+            G = reward + G  # Update return
+            # Every visit: update Q-value and count for each state-action pair
+            if (state, action) not in self.state_action_counts:
+                self.state_action_counts[(state, action)] = 0
+                self.state_returns[(state, action)] = 0.0
+            
+            self.state_action_counts[(state, action)] += 1
+            self.state_returns[(state, action)] += G
+            
+            # Update Q-value with the average return
+            self.q_values[action] = self.state_returns[(state, action)] / self.state_action_counts[(state, action)]
+
+# Example usage
+actions = ['a1', 'a2', 'a3']  # Possible actions
+agent = MonteCarloAgent(actions)
+
+for episode in range(20):  # Simulate 20 episodes
+    episode_data = agent.generate_episode()  # Generate an episode
+    agent.update_q_values(episode_data)  # Update Q-values based on the episode
+
+    print(f"Episode {episode + 1}: Q-values={agent.q_values}")
